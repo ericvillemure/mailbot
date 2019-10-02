@@ -5,7 +5,7 @@ This fork allows to mark an email (as 'seen' for example) but can be done dynami
 ### Example options
 
 ```js
-mailHandler (mail, trigger) {
+mailHandler (mail, trigger, uid) {
 	this.client.seq.addFlags(uid, 'SEEN', err => debug(err));
 }	
 ```
@@ -105,7 +105,7 @@ trigger ({ headers }) {
 
 // The mail handler: this is the "job executor"
 // Input: a mail object, and the trigger value
-mailHandler (mail, trigger) {
+mailHandler (mail, trigger, uid) {
 	console.log({
 		subject: mail.headers.subject,
 		trigger

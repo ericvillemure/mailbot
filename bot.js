@@ -31,7 +31,7 @@ const createBot = (conf = {}) => {
 		markSeen: true,
 		triggerOnHeaders: false,
 		trigger: mail => false, // eslint-disable-line no-unused-vars
-		mailHandler: (mail, trigger) => {}, // eslint-disable-line no-unused-vars
+		mailHandler: (mail, trigger, uid) => {}, // eslint-disable-line no-unused-vars
 		errorHandler: (error, context) => console.error('MailBot Error', context, error), // eslint-disable-line no-console
 		autoReconnect: true,
 		autoReconnectTimeout: 5000,
@@ -68,7 +68,7 @@ const createBot = (conf = {}) => {
 	const handleMail = (mail, triggerResult, uid) => {
 		Promise.resolve()
 		.then(() => formatMail(mail))
-		.then(() => conf.mailHandler(mail, triggerResult))
+		.then(() => conf.mailHandler(mail, triggerResult, uid))
 		.catch(handleError('MAIL', mail, uid))
 	}
 
