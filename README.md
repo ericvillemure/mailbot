@@ -2,6 +2,14 @@
 
 This fork allows to mark an email (as 'seen' for example) but can be done dynamically instead of right after fetching the email (see [markSeen](#options))
 
+### Example options
+
+```js
+mailHandler (mail, trigger) {
+	this.client.seq.addFlags(uid, 'SEEN', err => debug(err));
+}	
+```
+
 # MailBot
 
 This module will help you build an imap bot reacting to incoming emails.

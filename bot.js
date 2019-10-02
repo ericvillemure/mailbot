@@ -40,7 +40,10 @@ const createBot = (conf = {}) => {
 		ignoreAttachmentsInSignature: true,
 		cleanSubject: true,
 		searchPeriod: false, // falsey to disable, otherwise milliseconds period
-	}, conf)
+	}, conf,
+	{
+		client: null
+	})
 
 	// Timeout instance for planned periodic search
 	// Note that this is bot-wide and not client-wide
@@ -119,7 +122,6 @@ const createBot = (conf = {}) => {
 
 	// Current client:
 	// We replace the instance whenever connection info change
-	let client = null
 	let shouldRecreateClient = false
 
 	const initClient = () => {
@@ -128,9 +130,9 @@ const createBot = (conf = {}) => {
 		searchTimeout = null
 
 		// Open mailbox
-		client.once('ready', () => {
+		conf.client.once('ready', () => {
 			debug('IMAP ready')
-			client.openBoxP(conf.mailbox, false)
+			conf.client.openBoxP(conf.mailbox, false)
 			.then(() => {
 				debug('Mailbox open')
 				return search()
@@ -148,12 +150,12 @@ const createBot = (conf = {}) => {
 			search()
 		}
 
-		const watch = () => client.on('mail', newMailSearch)
+		const watch = () => conf.client.on('mail', newMailSearch)
 
 		const search = () => {
 			// Whenever it comes in the middle of a scheduled search, cancel it
 			clearTimeout(searchTimeout)
-			return client.searchP(conf.filter)
+			return conf.client.searchP(conf.filter)
 			.then(uids => {
 				const newUids = uids.filter(uid => !doneUids.includes(uid))
 				debug('Search', newUids)
@@ -172,24 +174,24 @@ const createBot = (conf = {}) => {
 			})
 		}
 
-		client.on('close', err => {
+		conf.client.on('close', err => {
 			debug('IMAP disconnected', err)
 			if (err && conf.autoReconnect) {
 				debug('Trying to reconnect…')
-				setTimeout(() => client.connect(), conf.autoReconnectTimeout)
+				setTimeout(() => conf.client.connect(), conf.autoReconnectTimeout)
 			} else {
 				debug('No reconnection (user close or no autoReconnect)')
 			}
 		})
 
-		client.on('error', handleError('IMAP_ERROR'))
+		conf.client.on('error', handleError('IMAP_ERROR'))
 
 		const fetchAndParse = source => {
 			debug('Fetch', source)
 			if (source.length === 0) {
 				return Promise.resolve([])
 			}
-			const fetcher = client.fetch(source, {
+			const fetcher = conf.client.fetch(source, {
 				bodies: '',
 				struct: true,
 				markSeen: conf.markSeen,
@@ -267,24 +269,24 @@ const createBot = (conf = {}) => {
 
 		start () {
 			debug('Connecting…')
-			if (!client || shouldRecreateClient) {
-				client = imap(conf.imap)
+			if (!conf.client || shouldRecreateClient) {
+				conf.client = imap(conf.imap)
 			}
 			initClient()
-			client.connect()
+			conf.client.connect()
 			return new Promise((resolve, reject) => {
 				const onReady = () => {
 					debug('Connected!')
-					client.removeListener('error', onError)
+					conf.client.removeListener('error', onError)
 					resolve()
 				}
 				const onError = err => {
 					debug('Connection error!', err)
-					client.removeListener('ready', onReady)
+					conf.client.removeListener('ready', onReady)
 					reject(err)
 				}
-				client.once('ready', onReady)
-				client.once('error', onError)
+				conf.client.once('ready', onReady)
+				conf.client.once('error', onError)
 			})
 		},
 
@@ -293,20 +295,20 @@ const createBot = (conf = {}) => {
 			if (destroy) {
 				console.warn('destroy() should be used with high caution! Use graceful stop to remove this warning and avoid losing data.') // eslint-disable-line no-console
 			}
-			client[destroy ? 'destroy' : 'end']()
+			conf.client[destroy ? 'destroy' : 'end']()
 			return new Promise((resolve, reject) => {
 				const onEnd = () => {
 					debug('Stopped!')
-					client.removeListener('error', onError)
+					conf.client.removeListener('error', onError)
 					resolve()
 				}
 				const onError = err => {
 					debug('Stop error!', err)
-					client.removeListener('end', onEnd)
+					conf.client.removeListener('end', onEnd)
 					reject(err)
 				}
-				client.once('end', onEnd)
-				client.once('error', onError)
+				conf.client.once('end', onEnd)
+				conf.client.once('error', onError)
 			})
 		},
 
